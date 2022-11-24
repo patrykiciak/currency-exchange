@@ -39,6 +39,7 @@ public class ExchangeRateApi implements GetExchangeRatesPort {
 
     private GetExchangeRatesApiResponse requestExchangeRates(String baseCurrency, String[] targetCurrencies)
             throws FailedToFetchExchangeRatesException {
+        // TODO: Consider externalizing the URL
         final var urlTemplate = UriComponentsBuilder.fromHttpUrl("https://api.exchangerate.host/latest")
                 .queryParam("base", baseCurrency)
                 .queryParam("symbols", String.join(",", targetCurrencies))
