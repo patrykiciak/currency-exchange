@@ -29,6 +29,9 @@ class CurrenciesControllerTest {
     @MockBean
     private GetExchangeRatesUseCase getExchangeRatesUseCase;
 
+    @MockBean
+    private GetExchangeForecastUseCase getExchangeForecastUseCase;
+
     private <T> T getResponseBody(MvcResult mvcResult, Class<T> clazz) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(mvcResult.getResponse().getContentAsByteArray(), clazz);
