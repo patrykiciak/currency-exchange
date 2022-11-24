@@ -17,14 +17,15 @@ class GetExchangeForecastService implements GetExchangeForecastUseCase {
     }
 
     @Override
-    public Map<String, ExchangeForecast> getForecast(BigDecimal amount, String baseCurrency, String[] targetCurrencies)
+    public Map<String, ExchangeForecast> getForecast(GetForecastCommand command)
             throws FailedToFetchExchangeRatesException {
-        final var exchangeRates = getExchangeRatesPort.getExchangeRates(baseCurrency, targetCurrencies);
+        final var exchangeRates =
+                getExchangeRatesPort.getExchangeRates(command.baseCurrency(), command.targetCurrencies());
         return exchangeRates.entrySet().parallelStream().map(entry -> {
             final var exchangeRate = entry.getValue();
-            final var exchangeResult = amount.multiply(exchangeRate);
-            final var fee = amount.multiply(new BigDecimal("0.01"));
-            final var forecast = new ExchangeForecast(exchangeRate, amount, exchangeResult, fee);
+            final var exchangeResult = command.amount().multiply(exchangeRate);
+            final var fee = command.amount().multiply(new BigDecimal("0.01"));
+            final var forecast = new ExchangeForecast(exchangeRate, command.amount(), exchangeResult, fee);
             return Map.entry(entry.getKey(), forecast);
         }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }

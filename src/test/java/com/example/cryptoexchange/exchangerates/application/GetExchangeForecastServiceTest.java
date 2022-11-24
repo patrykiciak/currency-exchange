@@ -3,6 +3,7 @@ package com.example.cryptoexchange.exchangerates.application;
 import com.example.cryptoexchange.exchangerates.application.port.in.GetExchangeForecastUseCase;
 import com.example.cryptoexchange.exchangerates.application.port.out.GetExchangeRatesPort;
 import com.example.cryptoexchange.exchangerates.exception.FailedToFetchExchangeRatesException;
+import com.example.cryptoexchange.exchangerates.exception.InvalidAmountException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -27,7 +28,7 @@ class GetExchangeForecastServiceTest {
     }
 
     @Test
-    void getForecast_doesCorrectCalculations() throws FailedToFetchExchangeRatesException {
+    void getForecast_doesCorrectCalculations() throws FailedToFetchExchangeRatesException, InvalidAmountException {
         // given
         final var baseCurrency = "EUR";
         final var exchangeRates = Map.of("PLN", new BigDecimal("4.75"));
@@ -35,8 +36,8 @@ class GetExchangeForecastServiceTest {
         when(getExchangeRatesPort.getExchangeRates(baseCurrency, targetCurrencies)).thenReturn(exchangeRates);
 
         // when
-        final var forecastMap =
-                getExchangeForecastUseCase.getForecast(new BigDecimal(100), baseCurrency, targetCurrencies);
+        final var forecastMap = getExchangeForecastUseCase.getForecast(
+                GetForecastCommand.create(new BigDecimal(100), baseCurrency, targetCurrencies));
 
         // then
         assertEquals(0, new BigDecimal(100).compareTo(forecastMap.get("PLN").amount()));
@@ -45,7 +46,43 @@ class GetExchangeForecastServiceTest {
         assertEquals(0, new BigDecimal(475).compareTo(forecastMap.get("PLN").result()));
     }
 
-    @Test()
+    @Test
+    void getForecast_rejectsNegativeValues() throws FailedToFetchExchangeRatesException {
+        // given
+        final var baseCurrency = "EUR";
+        final var exchangeRates = Map.of("PLN", new BigDecimal("4.75"));
+        final var targetCurrencies = exchangeRates.keySet().toArray(new String[exchangeRates.size()]);
+        when(getExchangeRatesPort.getExchangeRates(baseCurrency, targetCurrencies)).thenReturn(exchangeRates);
+
+        // when
+        try {
+            getExchangeForecastUseCase.getForecast(
+                    GetForecastCommand.create(new BigDecimal(-100), baseCurrency, targetCurrencies));
+            fail();
+        } catch (Exception e) {
+            assertEquals(InvalidAmountException.class, e.getClass());
+        }
+    }
+
+    @Test
+    void getForecast_rejectsAmountEqualToZero() throws FailedToFetchExchangeRatesException {
+        // given
+        final var baseCurrency = "EUR";
+        final var exchangeRates = Map.of("PLN", new BigDecimal("4.75"));
+        final var targetCurrencies = exchangeRates.keySet().toArray(new String[exchangeRates.size()]);
+        when(getExchangeRatesPort.getExchangeRates(baseCurrency, targetCurrencies)).thenReturn(exchangeRates);
+
+        // when
+        try {
+            getExchangeForecastUseCase.getForecast(
+                    GetForecastCommand.create(new BigDecimal(0), baseCurrency, targetCurrencies));
+            fail();
+        } catch (Exception e) {
+            assertEquals(InvalidAmountException.class, e.getClass());
+        }
+    }
+
+    @Test
     void getForecast_cannotRetrieveExchangeRates() throws FailedToFetchExchangeRatesException {
         // given
         final var baseCurrency = "EUR";
@@ -56,11 +93,13 @@ class GetExchangeForecastServiceTest {
 
         // when
         try {
-            getExchangeForecastUseCase.getForecast(new BigDecimal(100), baseCurrency, targetCurrencies);
+            getExchangeForecastUseCase.getForecast(
+                    GetForecastCommand.create(new BigDecimal(100), baseCurrency, targetCurrencies));
 
             // then
             fail(); // we expect the exception, so fail if it wasn't thrown
-        } catch (FailedToFetchExchangeRatesException ignored) {
+        } catch (Exception exception) {
+            assertEquals(FailedToFetchExchangeRatesException.class, exception.getClass());
         }
     }
 }
